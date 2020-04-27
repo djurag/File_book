@@ -20,34 +20,97 @@ import java.util.List;
 
 public class Main extends JFrame {
     private static final long serialVersionUID = 1L;
-    private final JTextField pathField;
+    private JTextField pathField;
     private Path path = Paths.get("data.csv");
-    private List<Record> records = new ArrayList<>();
+    private final List<Record> records = new ArrayList<>();
     private JTable jTable;
-    JFileChooser fileChooser;
+    private JFileChooser fileChooser;
     private FinalTableModel model;
-    private static final JLabel copyright = new JLabel("\u00a9 Darko Juraga, darko.juraga@outlook.com, Travanj 2020.");
+    private static final JLabel copyright = new JLabel("\u00a9 Darko Juraga, darko.juraga@outlook.com, April 2020.");
 
     private Main() {
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        setSize(710, 400);
-        setLocationRelativeTo(null);
-        ImageIcon icon = new ImageIcon("data/open-book.png");
-        this.setIconImage(icon.getImage());
+        initializeWindow();
         JPanel contentPane = new JPanel();
         contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
         contentPane.setLayout(new BorderLayout(0, 0));
         setContentPane(contentPane);
-        JButton btnLoadFile = new JButton("Ucitaj datoteku");
-        JButton newEntry = new JButton("Novi klijent");
-        JPanel top = new JPanel();
-        FlowLayout fl_top = (FlowLayout) top.getLayout();
-        fl_top.setAlignment(FlowLayout.LEFT);
+
+        JPanel top = topPanel();
         contentPane.add(top, BorderLayout.NORTH);
 
+        JScrollPane pane = centerPanel();
+        contentPane.add(pane, BorderLayout.CENTER);
+
+        JPanel bottom = bottomPanel();
+        contentPane.add(bottom, BorderLayout.SOUTH);
+    }
+
+    private JPanel bottomPanel() {
+        JPanel bottomPanel = new JPanel();
+        FlowLayout fl_bottom = (FlowLayout) bottomPanel.getLayout();
+        fl_bottom.setAlignment(FlowLayout.CENTER);
         JButton btnExit = new JButton("Kraj rada");
         btnExit.addActionListener(e -> System.exit(0));
+        bottomPanel.add(btnExit, BorderLayout.WEST);
+        JButton delete = new JButton("Ukloni spis");
+        bottomPanel.add(delete, BorderLayout.CENTER);
+        JTextField searchField = new JTextField();
+        JButton searchBtn = new JButton("Traži");
+        searchField.setColumns(20);
+        bottomPanel.add(searchField);
+        bottomPanel.add(searchBtn);
 
+        //delete listener
+        delete.addActionListener(e -> {
+            DeleteClient deleteClient = new DeleteClient();
+            if (!deleteClient.isVisible()) {
+                deleteClient.setVisible(true);
+            } else if (deleteClient.isVisible()) {
+                deleteClient.setVisible(false);
+            }
+        });
+        //search listener
+        searchBtn.addActionListener(e -> {
+            String search = searchField.getText();
+            List<Record> records1;
+            if (records.isEmpty()) {
+                setWarningMessage("Zapisi za pretraživanje nisu učitani ili zapisi ne postoje u datoteci!\n" +
+                        "Učitaj datoteku i pokušaj ponovo.");
+            } else {
+                if (StringUtils.isNumeric(search)) {
+                    records1 = searchOnAct(Integer.parseInt(search));
+                } else {
+                    records1 = searchOnName(search);
+                }
+                if (records1.isEmpty()) {
+                    setWarningMessage("Nema zapisa koji odgovaraju upitu");
+                } else {
+                    model = new FinalTableModel(records1);
+                    jTable.setModel(model);
+                }
+            }
+        });
+
+        JPanel bottom = new JPanel(new GridLayout(2, 1));
+        copyright.setHorizontalAlignment(JLabel.CENTER);
+        bottom.add(bottomPanel, BorderLayout.CENTER);
+        bottom.add(copyright, BorderLayout.CENTER);
+        return bottom;
+    }
+
+    private JScrollPane centerPanel() {
+        model = new FinalTableModel(records);
+        jTable = new JTable(model);
+        jTable.setAutoCreateRowSorter(true);
+        return new JScrollPane(jTable);
+    }
+
+    private JPanel topPanel() {
+        JPanel top = new JPanel();
+        JButton btnLoadFile = new JButton("Učitaj datoteku");
+        JButton newEntry = new JButton("Novi spis");
+        FlowLayout fl_top = (FlowLayout) top.getLayout();
+        fl_top.setAlignment(FlowLayout.LEFT);
         JButton openBtn = new JButton("Otvori");
         top.add(openBtn);
         pathField = new JTextField();
@@ -56,31 +119,11 @@ public class Main extends JFrame {
         pathField.setColumns(15);
         File f = path.toFile();
         pathField.setText(f.getName());
-
-        model = new FinalTableModel(records);
-        JScrollPane pane;
-        jTable = new JTable(model);
-        jTable.setAutoCreateRowSorter(true);
-        pane = new JScrollPane(jTable);
-        contentPane.add(pane, BorderLayout.CENTER);
-
-        fileChooser = new JFileChooser();
-        fileChooser.addChoosableFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File f) {
-                if (f.isDirectory())
-                    return true;
-                else
-                    return f.getName().toLowerCase().endsWith(".csv");
-            }
-
-            @Override
-            public String getDescription() {
-                return "Coma Separated Values (*.csv)";
-            }
+        JButton refresBtn = new JButton("Ažuriraj tablicu");
+        refresBtn.addActionListener(e -> {
+            model = new FinalTableModel(records);
+            jTable.setModel(model);
         });
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
-        //open button listener
         openBtn.addActionListener(e -> {
             int returnVal = fileChooser.showOpenDialog(Main.this);
             if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -89,13 +132,6 @@ public class Main extends JFrame {
                 pathField.setText(file.getName());
             }
         });
-
-        JButton refresBtn = new JButton("Azuriraj tablicu");
-        refresBtn.addActionListener(e -> {
-            model = new FinalTableModel(records);
-            jTable.setModel(model);
-        });
-
         //ucitaj datoteku listener
         btnLoadFile.addActionListener(e -> {
             Thread load = new Thread(() -> {
@@ -103,7 +139,7 @@ public class Main extends JFrame {
                     records.clear();
                     Files.lines(path).forEach(str -> records.add(getRecordFromLine(str)));
                     if (records.isEmpty()) {
-                        setWarningMessage("Ne postoje nikakvi zapisi!");
+                        setWarningMessage("Ne postoje zapisi u datoteci!");
                     } else {
                         model = new FinalTableModel(records);
                         jTable.setModel(model);
@@ -125,54 +161,30 @@ public class Main extends JFrame {
                 client.setVisible(false);
             }
         });
-        JPanel bottom = new JPanel();
-        FlowLayout fl_bottom = (FlowLayout) bottom.getLayout();
-        fl_bottom.setAlignment(FlowLayout.CENTER);
-        contentPane.add(bottom, BorderLayout.SOUTH);
+        fileChooser = new JFileChooser();
+        fileChooser.addChoosableFileFilter(new FileFilter() {
+            @Override
+            public boolean accept(File f) {
+                if (f.isDirectory())
+                    return true;
+                else
+                    return f.getName().toLowerCase().endsWith(".csv");
+            }
 
-        JButton delete = new JButton("Ukloni spis");
-        bottom.add(btnExit, BorderLayout.WEST);
-        bottom.add(delete, BorderLayout.CENTER);
-
-        JTextField searchField = new JTextField();
-        JButton searchBtn = new JButton("Trazi");
-        searchField.setColumns(20);
-        bottom.add(searchField);
-        bottom.add(searchBtn);
-
-        //delete listener
-        delete.addActionListener(e -> {
-            DeleteClient deleteClient = new DeleteClient();
-            if (!deleteClient.isVisible()) {
-                deleteClient.setVisible(true);
-            } else if (deleteClient.isVisible()) {
-                deleteClient.setVisible(false);
+            @Override
+            public String getDescription() {
+                return "Coma Separated Values (*.csv)";
             }
         });
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
+        return top;
+    }
 
-        //search listener
-        searchBtn.addActionListener(e -> {
-            String search = searchField.getText();
-            List<Record> records1;
-            if (StringUtils.isNumeric(search)) {
-                records1 = searchOnAct(Integer.parseInt(search));
-            } else {
-                records1 = searchOnName(search);
-            }
-            if (records1.isEmpty()) {
-                setWarningMessage("Nema zapisa koji odgovaraju upitu");
-            } else {
-                model = new FinalTableModel(records1);
-                jTable.setModel(model);
-            }
-        });
-
-        JPanel bottom2 = new JPanel(new GridLayout(2, 1));
-
-        copyright.setHorizontalAlignment(JLabel.CENTER);
-        bottom2.add(bottom, BorderLayout.CENTER);
-        bottom2.add(copyright, BorderLayout.CENTER);
-        contentPane.add(bottom2, BorderLayout.SOUTH);
+    private void initializeWindow() {
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setSize(710, 400);
+        this.setResizable(false);
+        setLocationRelativeTo(null);
     }
 
     private List<Record> searchOnName(String search) {
@@ -222,29 +234,27 @@ public class Main extends JFrame {
 
     class NewClient extends JFrame {
         NewClient() {
-            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            setSize(500, 150);
-            setLocationRelativeTo(Main.this);
-            setTitle("Novi klijent");
+            initializeNewClient();
             JPanel container = new JPanel();
             container.setBorder(new EmptyBorder(5, 5, 5, 5));
             container.setLayout(new BorderLayout(0, 0));
             setContentPane(container);
+
             //ime i prezime
             JPanel top = new JPanel();
-            JLabel nameLabel = new JLabel("Ime i prezime:");
+            JLabel nameLabel = new JLabel("Ime:");
             JTextField nameText = new JTextField();
             nameText.setColumns(20);
             FlowLayout fl_top = (FlowLayout) top.getLayout();
             fl_top.setAlignment(FlowLayout.LEFT);
-            top.add(nameLabel, BorderLayout.EAST);
+            top.add(nameLabel, BorderLayout.CENTER);
             top.add(nameText, BorderLayout.CENTER);
             container.add(top, BorderLayout.NORTH);
             //spis
             JPanel center = new JPanel();
             JLabel actLabel = new JLabel("Broj spisa:");
             JTextField actText = new JTextField();
-            actText.setColumns(20);
+            actText.setColumns(17);
             center.add(actLabel, BorderLayout.EAST);
             FlowLayout fl_cent = (FlowLayout) center.getLayout();
             fl_cent.setAlignment(FlowLayout.LEFT);
@@ -262,7 +272,7 @@ public class Main extends JFrame {
             save.addActionListener(e -> {
                 String name = nameText.getText().trim();
                 if (!StringUtils.isNumeric(actText.getText()))
-                    setWarningMessage("Broj spisa mora sadrzavati samo brojeve!");
+                    setWarningMessage("Broj spisa mora sadržavati samo brojeve!");
                 else {
                     int act = Integer.parseInt(actText.getText().trim());
                     Record newRecord = new Record(name, act);
@@ -273,21 +283,30 @@ public class Main extends JFrame {
                             model = new FinalTableModel(records);
                             jTable.setModel(model);
                             JOptionPane.showMessageDialog(this, "Zapis " + newRecord.toString() + " dodan je u tablicu.",
-                                    "Zapis uspjesno dodan", JOptionPane.PLAIN_MESSAGE);
+                                    "Zapis uspješno dodan", JOptionPane.PLAIN_MESSAGE);
                         } else
                             setWarningMessage("Broj spisa već postoji!");
                     } else {
-                        setWarningMessage("Postoji osoba sa istim imenom i prezimenom te brojem spisa!");
+                        setWarningMessage("Postoji spis sa istim imenom i brojem spisa!");
                     }
                 }
             });
+        }
+
+        private void initializeNewClient() {
+            setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            setSize(400, 150);
+            setLocationRelativeTo(Main.this);
+            this.setResizable(false);
+            setTitle("Novi spis");
         }
     }
 
     class DeleteClient extends JFrame {
         DeleteClient() {
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-            setSize(500, 150);
+            setSize(350, 100);
+            this.setResizable(false);
             setLocationRelativeTo(Main.this);
             setTitle("Ukloni spis");
             JPanel container = new JPanel();
@@ -301,7 +320,7 @@ public class Main extends JFrame {
             actText.setColumns(20);
             center.add(actLabel, BorderLayout.EAST);
             FlowLayout fl_cent = (FlowLayout) center.getLayout();
-            fl_cent.setAlignment(FlowLayout.LEFT);
+            fl_cent.setAlignment(FlowLayout.CENTER);
             center.add(actText, BorderLayout.CENTER);
             container.add(center, BorderLayout.CENTER);
             //gumbi
@@ -314,26 +333,26 @@ public class Main extends JFrame {
             cancel.addActionListener(e -> setVisible(false));
 
             save.addActionListener(e -> {
-                Record deleteRecord = null;
+                Record deleteRecord;
                 if (actText.getText().trim().isEmpty()) {
                     setWarningMessage("Broj spisa mora biti unesen!");
                 } else if (!StringUtils.isNumeric(actText.getText().trim()))
-                    setWarningMessage("Broj spisa mora sadrzavati samo brojeve!");
+                    setWarningMessage("Broj spisa mora sadržavati samo brojeve!");
                 else {
                     deleteRecord = getFromRecordsAsAct(Integer.parseInt(actText.getText().trim()));
 
-                    int reply = JOptionPane.showConfirmDialog(this, "Jeste li sigurni da zelite ukloniti zapis?");
+                    int reply = JOptionPane.showConfirmDialog(this, "Jeste li sigurni da želite ukloniti zapis?");
                     if (reply == JOptionPane.YES_OPTION) {
                         this.setVisible(false);
                         if (deleteRecord == null || !records.contains(deleteRecord)) {
-                            setWarningMessage("Nije moguce ukloniti zapis!\nZapis sa navedenim brojem spisa ne postoji!");
+                            setWarningMessage("Nije moguće ukloniti zapis!\nZapis sa navedenim brojem spisa ne postoji!");
                         } else {
                             records.remove(deleteRecord);
                             updateFile();
                             model = new FinalTableModel(records);
                             jTable.setModel(model);
                             JOptionPane.showMessageDialog(this, "Zapis " + deleteRecord.toString() + " uklonjen je iz tablice.",
-                                    "Spis uspjesno uklonjen", JOptionPane.PLAIN_MESSAGE);
+                                    "Spis uspješno uklonjen", JOptionPane.PLAIN_MESSAGE);
                         }
                     }
                 }

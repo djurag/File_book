@@ -5,7 +5,7 @@ import java.util.List;
 
 public class FinalTableModel extends AbstractTableModel {
     private List<Record> recordList;
-    private String[] columnNames = {"Ime i prezime", "Broj spisa"};
+    private String[] columnNames = {"Ime", "Broj spisa"};
 
     public FinalTableModel(List<Record> recordList) {
         this.recordList = recordList;
