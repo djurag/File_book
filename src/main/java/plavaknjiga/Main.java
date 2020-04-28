@@ -67,8 +67,6 @@ public class Main extends JFrame {
         searchField.setColumns(20);
         bottomPanel.add(searchField);
         bottomPanel.add(searchBtn);
-        searchField.setEnabled(false);
-        searchBtn.setEnabled(false);
 
         //delete listener
         delete.addActionListener(e -> {
@@ -101,7 +99,6 @@ public class Main extends JFrame {
                 }
             }
         });
-
         help.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -185,8 +182,6 @@ public class Main extends JFrame {
                     } else {
                         model = new FinalTableModel(records);
                         jTable.setModel(model);
-                        searchBtn.setEnabled(true);
-                        searchField.setEnabled(true);
                     }
                 } catch (IOException ignored) {
                 }
