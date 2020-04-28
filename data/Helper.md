@@ -2,6 +2,12 @@
 Ova aplikacija namijenjena je za uredsku uporabu za potrebe vođenja evidencije
 o spisima. Aplikacija se sastoji od nekoliko segmenata koji će biti predstavljeni u
 nastavku.
+Sadržaj helpera:
+- [Glavni zaslon](#glavni-zaslon)
+- [Novi spis](#novi-spis)
+- [Ukloni spis](#ukloni-spis)
+- [Kraj rada](#kraj-rada)
+
 ## Glavni zaslon
 ![Glavni zaslon](https://github.com/djurag/File_book/blob/master/data/Main_screen.png)
 
