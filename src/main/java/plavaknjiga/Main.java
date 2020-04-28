@@ -108,7 +108,7 @@ public class Main extends JFrame {
                 int reply = JOptionPane.showConfirmDialog(Main.this, "Želite li pristupiti uputstvima?");
                 if (reply == JOptionPane.YES_OPTION) {
                     try {
-                        Desktop.getDesktop().browse(new URI("https://github.com/djurag/File_book/blob/master/README.md"));
+                        Desktop.getDesktop().browse(new URI("https://github.com/djurag/File_book/blob/master/data/Helper.md#plava-knjiga-helper"));
                     } catch (Exception ignore) {
                     }
 
