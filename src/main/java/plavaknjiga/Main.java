@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -206,20 +206,8 @@ public class Main extends JFrame {
             }
         });
         fileChooser = new JFileChooser();
-        fileChooser.addChoosableFileFilter(new FileFilter() {
-            @Override
-            public boolean accept(File f) {
-                if (f.isDirectory())
-                    return true;
-                else
-                    return f.getName().toLowerCase().endsWith(".csv");
-            }
-
-            @Override
-            public String getDescription() {
-                return "Coma Separated Values (*.csv)";
-            }
-        });
+        FileNameExtensionFilter nameExtensionFilter = new FileNameExtensionFilter("Coma Separated Values (*.csv)", "csv");
+        fileChooser.setFileFilter(nameExtensionFilter);
         fileChooser.setCurrentDirectory(new File(System.getProperty("user.dir")));
         return top;
     }
