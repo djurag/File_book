@@ -8,9 +8,14 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.filechooser.FileFilter;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,7 +31,10 @@ public class Main extends JFrame {
     private JTable jTable;
     private JFileChooser fileChooser;
     private FinalTableModel model;
-    private static final JLabel copyright = new JLabel("\u00a9 Darko Juraga, darko.juraga@outlook.com, April 2020.");
+    private JTextField searchField;
+    private JButton searchBtn;
+    private static final JLabel help = new JLabel("Upute za uporabu");
+    private static final JLabel copyright = new JLabel("\u00a9 Darko Juraga, April 2020.");
 
     private Main() {
         initializeWindow();
@@ -54,11 +62,13 @@ public class Main extends JFrame {
         bottomPanel.add(btnExit, BorderLayout.WEST);
         JButton delete = new JButton("Ukloni spis");
         bottomPanel.add(delete, BorderLayout.CENTER);
-        JTextField searchField = new JTextField();
-        JButton searchBtn = new JButton("Traži");
+        searchField = new JTextField();
+        searchBtn = new JButton("Traži");
         searchField.setColumns(20);
         bottomPanel.add(searchField);
         bottomPanel.add(searchBtn);
+        searchField.setEnabled(false);
+        searchBtn.setEnabled(false);
 
         //delete listener
         delete.addActionListener(e -> {
@@ -69,6 +79,7 @@ public class Main extends JFrame {
                 deleteClient.setVisible(false);
             }
         });
+
         //search listener
         searchBtn.addActionListener(e -> {
             String search = searchField.getText();
@@ -91,9 +102,39 @@ public class Main extends JFrame {
             }
         });
 
-        JPanel bottom = new JPanel(new GridLayout(2, 1));
+        help.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int reply = JOptionPane.showConfirmDialog(Main.this, "Želite li pristupiti uputstvima?");
+                if (reply == JOptionPane.YES_OPTION) {
+                    try {
+                        Desktop.getDesktop().browse(new URI("https://github.com/djurag/File_book/blob/master/README.md"));
+                    } catch (Exception ignore) {
+                    }
+
+                }
+            }
+        });
+
+        copyright.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int reply = JOptionPane.showConfirmDialog(Main.this, "Želite li poslati mail autoru?");
+                if (reply == JOptionPane.YES_OPTION) {
+                    try {
+                        Desktop.getDesktop().mail(new URI("mailto:darko.juraga@outlook.com?subject=[File_book]%20Upit"));
+                    } catch (Exception ignore) {
+                        ignore.printStackTrace();
+                    }
+                }
+            }
+        });
+
+        JPanel bottom = new JPanel(new GridLayout(3, 1));
         copyright.setHorizontalAlignment(JLabel.CENTER);
         bottom.add(bottomPanel, BorderLayout.CENTER);
+        help.setHorizontalAlignment(JLabel.CENTER);
+        bottom.add(help, BorderLayout.CENTER);
         bottom.add(copyright, BorderLayout.CENTER);
         return bottom;
     }
@@ -123,6 +164,7 @@ public class Main extends JFrame {
         refresBtn.addActionListener(e -> {
             model = new FinalTableModel(records);
             jTable.setModel(model);
+            searchField.setText("");
         });
         openBtn.addActionListener(e -> {
             int returnVal = fileChooser.showOpenDialog(Main.this);
@@ -143,6 +185,8 @@ public class Main extends JFrame {
                     } else {
                         model = new FinalTableModel(records);
                         jTable.setModel(model);
+                        searchBtn.setEnabled(true);
+                        searchField.setEnabled(true);
                     }
                 } catch (IOException ignored) {
                 }
@@ -269,11 +313,29 @@ public class Main extends JFrame {
             container.add(bottom, BorderLayout.SOUTH);
             cancel.addActionListener(e -> setVisible(false));
 
+            nameText.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+                        setVisible(false);
+                }
+            });
+
+            actText.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+                        setVisible(false);
+                }
+            });
+            getRootPane().setDefaultButton(save);
             save.addActionListener(e -> {
                 String name = nameText.getText().trim();
-                if (!StringUtils.isNumeric(actText.getText()))
+                if (nameText.getText().isEmpty() || actText.getText().isEmpty()) {
+                    setWarningMessage("Nepotpuni unos!");
+                } else if (!StringUtils.isNumeric(actText.getText())) {
                     setWarningMessage("Broj spisa mora sadržavati samo brojeve!");
-                else {
+                } else {
                     int act = Integer.parseInt(actText.getText().trim());
                     Record newRecord = new Record(name, act);
                     String[] streamRecord = {name, String.valueOf(act)};
@@ -332,6 +394,15 @@ public class Main extends JFrame {
             container.add(bottom, BorderLayout.SOUTH);
             cancel.addActionListener(e -> setVisible(false));
 
+            actText.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
+                        setVisible(false);
+                }
+            });
+
+            getRootPane().setDefaultButton(save);
             save.addActionListener(e -> {
                 Record deleteRecord;
                 if (actText.getText().trim().isEmpty()) {
